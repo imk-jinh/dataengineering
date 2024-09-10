@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import mysql.connector
 from mysql.connector import Error
+import matplotlib.pyplot as plt
 
 # 한국 시간대 설정
 KST = timezone('Asia/Seoul')
@@ -157,6 +158,55 @@ def load_data_to_mysql(**kwargs):
             cursor.close()
             conn.close()
 
+def visualize_fine_dust_data(**kwargs):
+    """
+    MySQL 데이터베이스에서 미세먼지 데이터를 쿼리하여 시각화하고,
+    시각화 결과를 파일로 저장하는 함수.
+    """
+    try:
+        # MySQL에 연결 시도
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
+
+        # 연결이 성공적으로 되었는지 확인
+        if conn.is_connected():
+            query = """
+            SELECT dataDate, AVG(issueVal) as avg_issueVal
+            FROM fine_dust
+            GROUP BY dataDate
+            ORDER BY dataDate;
+            """
+            
+            # 데이터를 DataFrame으로 불러오기
+            df = pd.read_sql(query, conn)
+            
+            # 데이터 시각화
+            plt.figure(figsize=(10, 6))
+            plt.plot(df['dataDate'], df['avg_issueVal'], marker='o', linestyle='-', color='b')
+            plt.title('Average Fine Dust Issue Value Over Time')
+            plt.xlabel('Date')
+            plt.ylabel('Average Issue Value')
+            plt.xticks(rotation=45)
+            plt.grid(True)
+            
+            # 그래프를 파일로 저장
+            plt.savefig('/tmp/fine_dust_report.png')  # Airflow 워커가 접근할 수 있는 경로에 저장
+
+            print("시각화가 성공적으로 완료되었습니다. /tmp/fine_dust_report.png에 저장되었습니다.")
+
+    except Error as e:
+        print(f"MySQL 오류: {e}")
+    
+    finally:
+        # MySQL 연결을 종료
+        if conn.is_connected():
+            conn.close()
+
 # 첫 번째 태스크: 데이터를 크롤링하여 XCom에 저장
 crawl_data_task = PythonOperator(
     task_id='crawl_fine_dust_data',  # 태스크 ID
@@ -173,5 +223,23 @@ load_data_task = PythonOperator(
     dag=dag,  # DAG에 태스크 추가
 )
 
+# 시각화 태스크 추가: 데이터를 시각화하고 결과를 파일로 저장
+visualize_data_task = PythonOperator(
+    task_id='visualize_fine_dust_data',  # 태스크 ID
+    python_callable=visualize_fine_dust_data,  # 실행할 함수
+    provide_context=True,  # XCom을 사용하기 위해 컨텍스트 제공
+    dag=dag,  # DAG에 태스크 추가
+)
+
+# 이메일 태스크 추가: 시각화 결과를 이메일로 전송
+email_report_task = EmailOperator(
+    task_id='send_fine_dust_report_email',
+    to='rlawlsgud980@naver.com',
+    subject='Daily Fine Dust Data Report',
+    html_content='Please find the attached report for today\'s fine dust data.',
+    files=['/tmp/fine_dust_report.png'],  # 첨부할 파일 경로
+    dag=dag
+)
+
 # 태스크 의존성 설정: 데이터 크롤링 후 MySQL에 저장하는 작업이 실행되도록 설정
-crawl_data_task >> load_data_task
+crawl_data_task >> load_data_task >> visualize_data_task >> email_report_task
