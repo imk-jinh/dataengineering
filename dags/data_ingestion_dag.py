@@ -157,46 +157,46 @@ def load_data_to_mysql(**kwargs):
             cursor.close()
             conn.close()
 
-def process_csv_and_load_to_mysql():
-    file_path = '/opt/airflow/data/patient_data.csv'
-    df = pd.read_csv(file_path)
-    df_filtered = df[df['환자수'] > 100]
-    df_filtered = df_filtered[['시도', '상병구분', '환자수']]
+# def process_csv_and_load_to_mysql():
+#     file_path = '/opt/airflow/data/patient_data.csv'
+#     df = pd.read_csv(file_path)
+#     df_filtered = df[df['환자수'] > 100]
+#     df_filtered = df_filtered[['시도', '상병구분', '환자수']]
     
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        cursor = conn.cursor()
-        create_table_query = '''
-        CREATE TABLE IF NOT EXISTS patient_data (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            시도 VARCHAR(255),
-            상병구분 VARCHAR(255),
-            환자수 INT
-        )
-        '''
-        cursor.execute(create_table_query)
+#     try:
+#         conn = mysql.connector.connect(
+#             host=DB_HOST,
+#             port=DB_PORT,
+#             user=DB_USER,
+#             password=DB_PASSWORD,
+#             database=DB_NAME
+#         )
+#         cursor = conn.cursor()
+#         create_table_query = '''
+#         CREATE TABLE IF NOT EXISTS patient_data (
+#             id INT AUTO_INCREMENT PRIMARY KEY,
+#             시도 VARCHAR(255),
+#             상병구분 VARCHAR(255),
+#             환자수 INT
+#         )
+#         '''
+#         cursor.execute(create_table_query)
         
-        for index, row in df_filtered.iterrows():
-            insert_query = '''
-            INSERT INTO patient_data (시도, 상병구분, 환자수)
-            VALUES (%s, %s, %s)
-            '''
-            cursor.execute(insert_query, (row['시도'], row['상병구분'], row['환자수']))
+#         for index, row in df_filtered.iterrows():
+#             insert_query = '''
+#             INSERT INTO patient_data (시도, 상병구분, 환자수)
+#             VALUES (%s, %s, %s)
+#             '''
+#             cursor.execute(insert_query, (row['시도'], row['상병구분'], row['환자수']))
         
-        conn.commit()
-        print("CSV 데이터가 MySQL에 성공적으로 저장되었습니다.")
-    except Error as e:
-        print(f"MySQL 오류: {e}")
-    finally:
-        if conn.is_connected():
-            cursor.close()
-            conn.close()
+#         conn.commit()
+#         print("CSV 데이터가 MySQL에 성공적으로 저장되었습니다.")
+#     except Error as e:
+#         print(f"MySQL 오류: {e}")
+#     finally:
+#         if conn.is_connected():
+#             cursor.close()
+#             conn.close()
 
 
 # 첫 번째 태스크: 데이터를 크롤링하여 XCom에 저장
@@ -215,12 +215,12 @@ load_data_task = PythonOperator(
     dag=dag,  # DAG에 태스크 추가
 )
 
-process_csv_task = PythonOperator(
-    task_id='process_csv_and_load_to_mysql',
-    python_callable=process_csv_and_load_to_mysql,
-    dag=dag,
-)
+# process_csv_task = PythonOperator(
+#     task_id='process_csv_and_load_to_mysql',
+#     python_callable=process_csv_and_load_to_mysql,
+#     dag=dag,
+# )
 
 # 태스크 의존성 설정: 데이터 크롤링 후 MySQL에 저장하는 작업이 실행되도록 설정
 crawl_data_task >> load_data_task
-process_csv_task
+# process_csv_task
