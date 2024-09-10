@@ -166,4 +166,4 @@ load_data_task = PythonOperator(
 #     dag=dag,
 # )
 
-crawl_data_task >> load_data_task >> visualize_data_task
+crawl_data_task >> load_data_task 
