@@ -159,7 +159,7 @@ def load_data_to_mysql(**kwargs):
 
 def process_csv_and_load_to_mysql():
     file_path = '/opt/airflow/dags/patient_data.csv'
-    df = pd.read_csv(file_path, encoding='ISO-8859-1')
+    df = pd.read_csv(file_path, encoding='EUC-KR')
     df_filtered = df[df['환자 수'] > 100]
     df_filtered = df_filtered[['시도', '상병구분', '환자수']]
     
