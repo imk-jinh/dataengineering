@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import mysql.connector
 from mysql.connector import Error
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 # 한국 시간대 설정
 KST = timezone('Asia/Seoul')
@@ -116,37 +116,37 @@ def load_data_to_mysql(**kwargs):
             cursor.close()
             conn.close()
 
-def visualize_fine_dust_data(**kwargs):
-    try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        if conn.is_connected():
-            query = """
-            SELECT dataDate, AVG(issueVal) as avg_issueVal
-            FROM fine_dust
-            GROUP BY dataDate
-            ORDER BY dataDate;
-            """
-            df = pd.read_sql(query, conn)
-            plt.figure(figsize=(10, 6))
-            plt.plot(df['dataDate'], df['avg_issueVal'], marker='o', linestyle='-', color='b')
-            plt.title('Average Fine Dust Issue Value Over Time')
-            plt.xlabel('Date')
-            plt.ylabel('Average Issue Value')
-            plt.xticks(rotation=45)
-            plt.grid(True)
-            plt.savefig('/tmp/fine_dust_report.png')
-            print("시각화가 성공적으로 완료되었습니다. /tmp/fine_dust_report.png에 저장되었습니다.")
-    except Error as e:
-        print(f"MySQL 오류: {e}")
-    finally:
-        if conn.is_connected():
-            conn.close()
+# def visualize_fine_dust_data(**kwargs):
+#     try:
+#         conn = mysql.connector.connect(
+#             host=DB_HOST,
+#             port=DB_PORT,
+#             user=DB_USER,
+#             password=DB_PASSWORD,
+#             database=DB_NAME
+#         )
+#         if conn.is_connected():
+#             query = """
+#             SELECT dataDate, AVG(issueVal) as avg_issueVal
+#             FROM fine_dust
+#             GROUP BY dataDate
+#             ORDER BY dataDate;
+#             """
+#             df = pd.read_sql(query, conn)
+#             plt.figure(figsize=(10, 6))
+#             plt.plot(df['dataDate'], df['avg_issueVal'], marker='o', linestyle='-', color='b')
+#             plt.title('Average Fine Dust Issue Value Over Time')
+#             plt.xlabel('Date')
+#             plt.ylabel('Average Issue Value')
+#             plt.xticks(rotation=45)
+#             plt.grid(True)
+#             plt.savefig('/tmp/fine_dust_report.png')
+#             print("시각화가 성공적으로 완료되었습니다. /tmp/fine_dust_report.png에 저장되었습니다.")
+#     except Error as e:
+#         print(f"MySQL 오류: {e}")
+#     finally:
+#         if conn.is_connected():
+            # conn.close()
 
 crawl_data_task = PythonOperator(
     task_id='crawl_fine_dust_data',
@@ -160,10 +160,10 @@ load_data_task = PythonOperator(
     dag=dag,
 )
 
-visualize_data_task = PythonOperator(
-    task_id='visualize_fine_dust_data',
-    python_callable=visualize_fine_dust_data,
-    dag=dag,
-)
+# visualize_data_task = PythonOperator(
+#     task_id='visualize_fine_dust_data',
+#     python_callable=visualize_fine_dust_data,
+#     dag=dag,
+# )
 
 crawl_data_task >> load_data_task >> visualize_data_task
